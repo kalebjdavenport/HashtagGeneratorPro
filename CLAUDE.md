@@ -37,15 +37,18 @@ The canonical production domain is `https://hashtag-generator-pro.vercel.app`. T
 ## Key Architecture Decisions
 
 ### Static/Dynamic Split
-- **Server Components** (no JS): layout, page content, footer, FAQ content, JSON-LD. These render to static HTML at build time for SEO.
+- **Static Components** (no JS): layout, page content, footer, FAQ content, JSON-LD. These render to pure HTML at build time for SEO — no JavaScript shipped to the browser.
 - **Client Components** (`"use client"`): NavBar, HashtagGenerator and its children (MethodTabs, InputForm, StatusMessage, HashtagResults, FaqAccordion). These hydrate on the client for interactivity.
 - The hydration boundary starts at `HashtagGenerator.tsx`. Everything above it in the page is pure static HTML.
 
 ### API Route (`app/api/generate/route.ts`)
-- POST endpoint that validates input, checks for the provider's API key in `process.env`, dispatches to the selected provider, and returns parsed hashtags.
-- Provider modules use `import "server-only"` to prevent accidental client bundling.
-- Each provider has its own SDK, API key, and rate limits — they fail independently.
-- HTTP 429 from providers is detected via SDK error status codes, not string matching.
+The route runs entirely server-side (Vercel serverless function) and follows a three-stage pipeline:
+
+1. **Validate** — Rejects bad input (missing/invalid method, text too short/long) with 400 before any API call is made. This is the cheapest check and fails fast.
+2. **Dispatch** — Checks the provider's API key exists in `process.env`, then routes to the correct provider module (`claude.ts`, `openai.ts`, or `gemini.ts`). Each provider is isolated with its own SDK and API key — if one is rate-limited, the others remain available.
+3. **Respond** — Returns the result on success, or catches errors and maps them to typed error codes (`RATE_LIMITED` for HTTP 429, `MISSING_KEY` for unconfigured providers, `PROVIDER_ERROR` for everything else).
+
+This never blocks the browser — the client calls the route via an async `fetch()` from the `useHashtagGenerator` hook, keeping the UI responsive while the server waits on the AI provider. Provider modules use `import "server-only"` to prevent accidental client bundling.
 
 ### Caching (Two Tiers)
 1. **CDN Edge**: Static assets served with immutable cache headers. No origin hits for returning visitors.
@@ -64,7 +67,7 @@ The canonical production domain is `https://hashtag-generator-pro.vercel.app`. T
 | Server-only provider code | `lib/providers/*.ts` |
 | Client hooks | `hooks/*.ts` |
 | Client components | `components/*.tsx` with `"use client"` directive |
-| Server components | `components/*.tsx` without the directive |
+| Static components | `components/*.tsx` without the directive |
 | Tests | `__tests__/**/*.test.ts(x)` mirroring source structure |
 
 ## Common Tasks

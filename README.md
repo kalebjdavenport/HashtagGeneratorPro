@@ -51,9 +51,9 @@ GOOGLE_AI_API_KEY=AI...
 
 The app is built on a static/dynamic split:
 
-- **Static** (Server Components) — Header, hero, use cases, footer, FAQ, JSON-LD structured data. Rendered to pure HTML at build time, served from CDN edge, fully crawlable with zero client JS.
+- **Static Components** — Header, hero, use cases, footer, FAQ, JSON-LD structured data. Rendered to pure HTML at build time, served from CDN edge, fully crawlable with zero client JS.
 - **Interactive** (Client Components) — The hashtag generator form, tab selector, results display. Hydrated with React on the client after the static HTML paints.
-- **API Route** — `POST /api/generate` validates input, dispatches to the selected AI provider, parses the response, and returns hashtags. API keys never leave the server.
+- **API Route** — `POST /api/generate` runs entirely server-side as a Vercel serverless function. It follows a three-stage pipeline: **Validate** (reject bad input before any API call), **Dispatch** (route to the selected AI provider), **Respond** (return result or a typed error code). The browser calls this via an async `fetch()`, so the UI stays responsive while the server waits on the AI provider. Each provider is isolated — if one is rate-limited (429), the others remain available. API keys never leave the server.
 
 ### Caching
 
@@ -67,7 +67,7 @@ flowchart TD
     CDN["CDN Edge · Static HTML, JS, CSS, fonts
     Cache-Control: immutable"]
     CDN --> Static
-    Static["Server Components — no JS
+    Static["Static Components — no JS
     Header · Hero · Use Cases · Footer · FAQ"]
     Static -. hydration boundary .-> Interactive
     Interactive["Client Components — use client
@@ -107,7 +107,7 @@ The app is optimized for search engine visibility and domain authority:
 - **Structured data** — `components/JsonLd.tsx` embeds four JSON-LD schemas: `WebApplication` (with aggregate rating), `FAQPage` (5 questions), `HowTo` (4 steps), and `BreadcrumbList`. These enable rich results in Google Search.
 - **Sitemap** — `app/sitemap.ts` generates `sitemap.xml` with the production URL and monthly change frequency.
 - **Robots** — `app/robots.ts` generates `robots.txt` allowing all crawlers and pointing to the sitemap.
-- **Static HTML** — Server Components render to pure HTML at build time, making all content (hero, features, FAQ, use cases) fully crawlable without JavaScript execution.
+- **Static HTML** — Static components render to pure HTML at build time, making all content (hero, features, FAQ, use cases) fully crawlable without JavaScript execution.
 - **Semantic headings** — Proper `h1` > `h2` > `h3` hierarchy throughout the page for content structure signals.
 
 ## Accessibility
@@ -144,7 +144,7 @@ HashtagGeneratorPro/
 │   ├── robots.ts               # Generated robots.txt
 │   ├── not-found.tsx           # Custom 404
 │   └── api/generate/
-│       └── route.ts            # POST handler: validate → dispatch → respond
+│       └── route.ts            # POST handler: validate → dispatch → respond (server-side only)
 ├── components/
 │   ├── NavBar.tsx              # Responsive nav with mobile hamburger menu
 │   ├── HashtagGenerator.tsx    # Client: top-level orchestrator
@@ -153,9 +153,9 @@ HashtagGeneratorPro/
 │   ├── HashtagResults.tsx      # Client: hashtag chips + copy
 │   ├── StatusMessage.tsx       # Client: loading + error states
 │   ├── FaqAccordion.tsx        # Client: animated accordion
-│   ├── Footer.tsx              # Server: how-it-works, FAQ, accessibility
-│   ├── JsonLd.tsx              # Server: 4 structured data schemas
-│   └── ArchitectureDiagram.tsx # Server: inline SVG architecture diagram
+│   ├── Footer.tsx              # Static: how-it-works, FAQ, accessibility
+│   ├── JsonLd.tsx              # Static: 4 structured data schemas
+│   └── ArchitectureDiagram.tsx # Static: inline SVG architecture diagram
 ├── lib/
 │   ├── types.ts                # Shared types and constants
 │   ├── prompts.ts              # System prompt + user prompt builder

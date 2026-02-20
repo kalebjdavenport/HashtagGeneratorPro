@@ -49,48 +49,49 @@ GOOGLE_AI_API_KEY=AI...
 
 ## Architecture
 
-The app is built on a static/dynamic split:
+The app has three layers: a static marketing page, an interactive client, and a server-side API. Each layer has a distinct job and they communicate in one direction — the page loads, the client hydrates on top of it, and when the user clicks "Generate," the client sends a request to the API.
 
-- **Static Components** — Header, hero, use cases, footer, FAQ, JSON-LD structured data. Rendered to pure HTML at build time, served from CDN edge, fully crawlable with zero client JS.
-- **Interactive** (Client Components) — The hashtag generator form, tab selector, results display. Hydrated with React on the client after the static HTML paints.
-- **API Route** — `POST /api/generate` runs entirely server-side as a Vercel serverless function. It follows a three-stage pipeline: **Validate** (reject bad input before any API call), **Dispatch** (route to the selected AI provider), **Respond** (return result or a typed error code). The browser calls this via an async `fetch()`, so the UI stays responsive while the server waits on the AI provider. Each provider is isolated — if one is rate-limited (429), the others remain available. API keys never leave the server.
+### Static layer
 
-### Caching
+The header, hero section, use cases, footer, FAQ, and structured data are all plain HTML generated at build time. No JavaScript is sent to the browser for these parts. Search engines can crawl them without executing any code, and they load instantly from a CDN edge node close to the user.
 
-Two tiers of caching minimize load:
+### Interactive layer
 
-1. **CDN Edge** — All static assets (HTML, JS, CSS, fonts) are served with immutable cache headers from edge nodes globally.
-2. **Browser** — AI responses are cached in `localStorage` using SHA-256 content-addressed keys (`htgp-cache-{hash}`). Same input + same model = instant result with no API call. TTL: 24 hours, max 50 entries, LRU eviction.
+The hashtag generator itself — the model selector tabs, the text input form, and the results display — is a React app that loads on top of the static HTML. It runs entirely in the browser. When the user has generated hashtags before with the same text and model, the result is stored in the browser's `localStorage` and returned instantly without contacting the server.
+
+### API layer — what happens when you click "Generate"
+
+When the user clicks "Generate Hashtags," the browser sends a request to the server in the background. The page doesn't freeze or navigate away — the user sees a loading spinner and can continue interacting with the page.
+
+On the server, the request goes through three steps:
+
+1. **Check the input** — Is the selected model valid? Is the text long enough? Is it too long? If anything is wrong, the server sends back an error immediately, before contacting any AI provider. This keeps things fast and avoids wasting API calls on bad input.
+
+2. **Call the AI provider** — The server looks up which AI model the user selected (Claude, GPT-5, or Gemini) and sends the text to that provider's API. Each provider is completely independent — it has its own API key, its own rate limits, and its own error handling. If Claude is overloaded, the user can switch to GPT-5 or Gemini and try again. The API keys are stored on the server and never sent to the browser.
+
+3. **Return the result** — If the AI provider responds successfully, the server sends the hashtags back to the browser. If something goes wrong, the server figures out what kind of error it was (rate limiting, missing API key, or a provider failure) and sends back a clear error message so the UI can show the user what happened and what to do about it.
 
 ```mermaid
 flowchart TD
-    CDN["CDN Edge · Static HTML, JS, CSS, fonts
-    Cache-Control: immutable"]
+    CDN["CDN Edge
+    Static HTML, JS, CSS, fonts"]
     CDN --> Static
-    Static["Static Components — no JS
+    Static["Static Layer — no JavaScript
     Header · Hero · Use Cases · Footer · FAQ"]
-    Static -. hydration boundary .-> Interactive
-    Interactive["Client Components — use client
+    Static -. page loads, then React hydrates .-> Interactive
+    Interactive["Interactive Layer — runs in the browser
     MethodTabs · InputForm · HashtagResults"]
     Interactive --> Cache
-    Cache[("localStorage Cache
-    SHA-256 key · 24h TTL · LRU")]
-    Cache -- HIT → instant --> Interactive
-    Cache -- MISS --> Route
-    Route["POST /api/generate (server-side)
-    Validate → Dispatch → Respond"]
-    Route --> Claude[Anthropic · claude-opus-4-6]
-    Route --> GPT[OpenAI · gpt-5]
-    Route --> Gemini[Google · gemini-2.5-flash]
+    Cache[("Browser Cache
+    Same input + model = instant result")]
+    Cache -- "already cached" --> Interactive
+    Cache -- "not cached" --> Route
+    Route["API Layer — runs on the server
+    Check input → Call AI → Return result"]
+    Route --> Claude[Claude · Anthropic]
+    Route --> GPT[GPT-5 · OpenAI]
+    Route --> Gemini[Gemini · Google]
 ```
-
-### API Route Pipeline
-
-The `POST /api/generate` route runs as a Vercel serverless function — never in the browser. The client calls it via an async `fetch()`, so the UI stays responsive while the server waits on the AI provider.
-
-1. **Validate** — Rejects bad input (missing method, text too short/long) with a `400` before any API call is made. Cheapest check, fails fast.
-2. **Dispatch** — Checks the provider's API key in `process.env`, then routes to the selected provider module (`claude.ts`, `openai.ts`, or `gemini.ts`). Each provider is isolated with its own SDK and API key — if one is rate-limited, the others remain available.
-3. **Respond** — Returns the result on success, or catches errors and maps them to typed error codes: `RATE_LIMITED` (HTTP 429), `MISSING_KEY` (unconfigured provider), `PROVIDER_ERROR` (everything else).
 
 ## Tech Stack
 

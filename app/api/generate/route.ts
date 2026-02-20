@@ -6,7 +6,12 @@ import type {
   GenerateErrorResponse,
 } from "@/lib/types";
 import { generateHashtags } from "@/lib/providers";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import {
+  getServerCachedResult,
+  setServerCachedResult,
+} from "@/lib/server-cache";
+import { createRequestLog, emitLog } from "@/lib/logger";
 
 const VALID_METHODS: MethodId[] = ["claude", "gpt5", "gemini"];
 const MIN_TEXT_LENGTH = 20;
@@ -15,19 +20,31 @@ const MAX_TEXT_LENGTH = 50_000;
 export async function POST(
   request: NextRequest,
 ): Promise<NextResponse<GenerateResponse | GenerateErrorResponse>> {
-  // Rate limit check (fail-open)
-  try {
-    const rateLimitResponse = await checkRateLimit(request);
-    if (rateLimitResponse) return rateLimitResponse;
-  } catch (err) {
-    console.error("[API /generate] Rate limit check failed, allowing request:", err);
-  }
+  const startTime = Date.now();
+  const ip = getClientIp(request);
+  const log = createRequestLog(ip);
 
   try {
+    // Rate limit check (fail-open)
+    try {
+      const rateLimitResponse = await checkRateLimit(request);
+      if (rateLimitResponse) {
+        log.statusCode = 429;
+        log.code = "RATE_LIMITED";
+        return rateLimitResponse;
+      }
+    } catch {
+      // fail-open: allow request if rate limit check fails
+    }
+
     const body = (await request.json()) as Partial<GenerateRequest>;
     const { method, title = "", text = "" } = body;
 
+    log.method = (method as string) ?? null;
+
     if (!method || !VALID_METHODS.includes(method as MethodId)) {
+      log.statusCode = 400;
+      log.code = "INVALID_INPUT";
       return NextResponse.json(
         {
           success: false as const,
@@ -39,6 +56,8 @@ export async function POST(
     }
 
     if (typeof text !== "string" || text.trim().length < MIN_TEXT_LENGTH) {
+      log.statusCode = 400;
+      log.code = "INVALID_INPUT";
       return NextResponse.json(
         {
           success: false as const,
@@ -50,6 +69,8 @@ export async function POST(
     }
 
     if (text.length > MAX_TEXT_LENGTH) {
+      log.statusCode = 400;
+      log.code = "INVALID_INPUT";
       return NextResponse.json(
         {
           success: false as const,
@@ -67,6 +88,8 @@ export async function POST(
     };
     const envKey = keyMap[method as MethodId];
     if (!process.env[envKey]) {
+      log.statusCode = 503;
+      log.code = "MISSING_KEY";
       return NextResponse.json(
         {
           success: false as const,
@@ -77,10 +100,33 @@ export async function POST(
       );
     }
 
+    const trimmedTitle = title.trim();
+    const trimmedText = text.trim();
+
+    // Server cache check (fail-open)
+    try {
+      const cached = await getServerCachedResult(
+        method as string,
+        trimmedTitle,
+        trimmedText,
+      );
+      if (cached) {
+        log.cacheHit = true;
+        return NextResponse.json({ success: true as const, result: cached });
+      }
+    } catch {
+      // fail-open: proceed to provider if cache check fails
+    }
+
     const result = await generateHashtags(
       method as MethodId,
-      title.trim(),
-      text.trim(),
+      trimmedTitle,
+      trimmedText,
+    );
+
+    // Fire-and-forget cache write
+    setServerCachedResult(method as string, trimmedTitle, trimmedText, result).catch(
+      () => {},
     );
 
     return NextResponse.json({ success: true as const, result });
@@ -91,10 +137,11 @@ export async function POST(
     // Extract HTTP status from SDK errors (Anthropic, OpenAI both expose .status)
     const status = (err as { status?: number }).status;
 
-    console.error("[API /generate] Error:", { message, status, err });
-
     // Only treat actual 429 HTTP status as rate limiting
     if (status === 429) {
+      log.statusCode = 429;
+      log.code = "RATE_LIMITED";
+      log.error = message;
       return NextResponse.json(
         {
           success: false as const,
@@ -105,13 +152,21 @@ export async function POST(
       );
     }
 
+    const responseStatus = status && status >= 400 ? status : 500;
+    log.statusCode = responseStatus;
+    log.code = "PROVIDER_ERROR";
+    log.error = message;
+
     return NextResponse.json(
       {
         success: false as const,
         error: message,
         code: "PROVIDER_ERROR" as const,
       },
-      { status: status && status >= 400 ? status : 500 },
+      { status: responseStatus },
     );
+  } finally {
+    log.latencyMs = Date.now() - startTime;
+    emitLog(log);
   }
 }

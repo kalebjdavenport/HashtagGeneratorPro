@@ -82,15 +82,19 @@ flowchart TD
     Interactive["Interactive Layer — runs in the browser
     MethodTabs · InputForm · HashtagResults"]
     Interactive --> Cache
-    Cache[("Browser Cache
+    Cache[("Browser Cache (L1)
     Same input + model = instant result")]
     Cache -- "already cached" --> Interactive
     Cache -- "not cached" --> Route
     Route["API Layer — runs on the server
-    Check input → Call AI → Return result"]
-    Route --> Claude[Claude · Anthropic]
-    Route --> GPT[GPT-5 · OpenAI]
-    Route --> Gemini[Gemini · Google]
+    Rate limit → Validate → Cache check → Call AI"]
+    Route --> ServerCache[("Server Cache (L2)
+    Redis — cross-user deduplication")]
+    ServerCache -- "hit" --> Route
+    ServerCache -- "miss" --> Providers
+    Providers --> Claude[Claude · Anthropic]
+    Providers --> GPT[GPT-5 · OpenAI]
+    Providers --> Gemini[Gemini · Google]
 ```
 
 ## Tech Stack
@@ -127,20 +131,101 @@ The app targets WCAG 2.1 Level AA compliance:
 - **Semantic HTML** — Proper heading hierarchy (`h1` > `h2` > `h3`), `<nav>`, `<main>`, `<footer>` landmarks, `<form>` with associated `<label>` elements, and `<button>` elements with explicit `type` attributes.
 - **Live regions** — Character count and validation messages update via ARIA live regions so screen readers announce changes without requiring focus.
 
+## Observability
+
+Every API request emits exactly one structured JSON log line, regardless of outcome. Logs are written to `stdout` via `console.log(JSON.stringify(...))`, which Vercel ingests for structured log search.
+
+### Example log line
+
+```json
+{
+  "requestId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "timestamp": "2025-06-15T14:32:01.456Z",
+  "method": "claude",
+  "ip": "203.0.113.42",
+  "latencyMs": 1247,
+  "statusCode": 200,
+  "cacheHit": false,
+  "error": null,
+  "code": null
+}
+```
+
+### Field reference
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `requestId` | `string` | UUID v4, unique per request |
+| `timestamp` | `string` | ISO 8601 when the request started |
+| `method` | `string \| null` | AI provider (`claude`, `gpt5`, `gemini`), null if request failed before parsing |
+| `ip` | `string` | Client IP from `x-forwarded-for` or `127.0.0.1` |
+| `latencyMs` | `number` | Total request duration in milliseconds |
+| `statusCode` | `number` | HTTP response status code |
+| `cacheHit` | `boolean` | Whether the server Redis cache returned a result |
+| `error` | `string \| null` | Error message if the request failed |
+| `code` | `string \| null` | Error code (`RATE_LIMITED`, `PROVIDER_ERROR`, `INVALID_INPUT`, `MISSING_KEY`) |
+
+### Viewing logs in Vercel
+
+1. Open your project at [vercel.com/dashboard](https://vercel.com/dashboard)
+2. Click your project → **Logs** tab in the top nav
+3. Logs appear in real time. Each structured JSON log is parsed automatically — click any log line to expand and see individual fields (`method`, `statusCode`, `latencyMs`, etc.)
+4. Use the search bar to filter by field values (see Common queries below)
+
+Vercel retains logs for 1 hour on the Hobby plan and 3 days on Pro. For longer retention, set up a **Log Drain** under Project Settings → Log Drains to forward logs to Datadog, Axiom, or any syslog-compatible service.
+
+### Common queries
+
+| Query | What it finds |
+|-------|--------------|
+| `statusCode:429` | All rate-limited requests |
+| `latencyMs:>3000` | Slow requests (>3s) |
+| `cacheHit:true` | Server cache hits (no AI provider call) |
+| `code:PROVIDER_ERROR` | AI provider failures |
+| `method:claude AND statusCode:500` | Claude-specific errors |
+
+### Two-tier cache architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    Browser (per-user)                │
+│  ┌───────────────────────────────────────────────┐  │
+│  │  L1: localStorage                             │  │
+│  │  Key: htgp-cache-{SHA256(method:title:text)}  │  │
+│  │  TTL: 24h · Max: 50 entries · LRU eviction    │  │
+│  └──────────────────────┬────────────────────────┘  │
+│                         │ miss                       │
+└─────────────────────────┼───────────────────────────┘
+                          ▼
+┌─────────────────────────────────────────────────────┐
+│                    Server (cross-user)               │
+│  ┌───────────────────────────────────────────────┐  │
+│  │  L2: Upstash Redis                            │  │
+│  │  Key: htgp-srv-{SHA256(method:title:text)}    │  │
+│  │  TTL: 24h · Automatic expiry via Redis EX     │  │
+│  └──────────────────────┬────────────────────────┘  │
+│                         │ miss                       │
+│                         ▼                            │
+│               AI Provider (Claude/GPT-5/Gemini)      │
+└─────────────────────────────────────────────────────┘
+```
+
 ## File Structure
 
 ```
 HashtagGeneratorPro/
 ├── __tests__/
-│   ├── api/generate.test.ts        # API route validation + error handling
+│   ├── api/generate.test.ts        # API route validation, cache, logging
 │   ├── components/
 │   │   ├── InputForm.test.tsx       # Form validation + callbacks
 │   │   ├── MethodTabs.test.tsx      # Tab selector + keyboard nav
 │   │   └── StatusMessage.test.tsx   # Loading + error states
 │   └── lib/
 │       ├── cache.test.ts            # localStorage cache logic
+│       ├── logger.test.ts           # Structured JSON logging
 │       ├── parse-hashtags.test.ts   # LLM output parser
-│       └── prompts.test.ts          # Prompt construction
+│       ├── prompts.test.ts          # Prompt construction
+│       └── server-cache.test.ts     # Redis response cache
 ├── app/
 │   ├── layout.tsx              # Root layout, fonts, metadata, skip link
 │   ├── page.tsx                # Hero, feature bar, use cases, architecture
@@ -149,7 +234,7 @@ HashtagGeneratorPro/
 │   ├── robots.ts               # Generated robots.txt
 │   ├── not-found.tsx           # Custom 404
 │   └── api/generate/
-│       └── route.ts            # POST handler: validate → dispatch → respond (server-side only)
+│       └── route.ts            # POST handler: rate limit → validate → cache → AI → respond
 ├── components/
 │   ├── NavBar.tsx              # Responsive nav with mobile hamburger menu
 │   ├── HashtagGenerator.tsx    # Client: top-level orchestrator
@@ -166,7 +251,10 @@ HashtagGeneratorPro/
 │   ├── prompts.ts              # System prompt + user prompt builder
 │   ├── parse-hashtags.ts       # LLM output parser
 │   ├── clipboard.ts            # Copy-to-clipboard utility
-│   ├── cache.ts                # SHA-256 localStorage cache
+│   ├── cache.ts                # SHA-256 localStorage cache (L1, browser)
+│   ├── server-cache.ts         # SHA-256 Redis cache (L2, server)
+│   ├── rate-limit.ts           # Upstash sliding-window rate limiter
+│   ├── logger.ts               # Structured JSON request logging
 │   └── providers/
 │       ├── claude.ts           # Server-only: Anthropic SDK
 │       ├── openai.ts           # Server-only: OpenAI SDK
@@ -176,19 +264,26 @@ HashtagGeneratorPro/
 │   ├── useHashtagGenerator.ts  # Cache → API → state management
 │   └── useLocalStorage.ts      # Persistent localStorage with debounce
 └── docs/
-    └── ARCHITECTURE.md         # Detailed internal architecture docs
+    ├── ARCHITECTURE.md         # Detailed internal architecture docs
+    └── adr/
+        ├── 001-static-dynamic-split.md
+        ├── 002-fail-open-rate-limiting.md
+        ├── 003-two-tier-caching.md
+        └── 004-provider-isolation.md
 ```
 
 ## Testing
 
-52 tests across 7 files using **Vitest**, **React Testing Library**, and **jsdom**. All tests are deterministic — no API keys, running server, or browser needed.
+78 tests across 10 files using **Vitest**, **React Testing Library**, and **jsdom**. All tests are deterministic — no API keys, running server, or browser needed.
 
 | Test file | What it covers |
 |-----------|---------------|
 | `__tests__/lib/parse-hashtags.test.ts` | `#tag` extraction, lowercase, dedup, comma/newline fallback, max limit |
 | `__tests__/lib/prompts.test.ts` | System prompt content, `buildUserPrompt` with/without title |
 | `__tests__/lib/cache.test.ts` | Cache key hashing, hit/miss, TTL expiry, clearCache, LRU eviction |
-| `__tests__/api/generate.test.ts` | Input validation, missing API key, success path, rate limiting, provider errors |
+| `__tests__/lib/server-cache.test.ts` | Redis cache hit/miss, fail-open, TTL, key format, idempotent keys |
+| `__tests__/lib/logger.test.ts` | Log creation, UUID format, ISO timestamp, JSON output, field mutability |
+| `__tests__/api/generate.test.ts` | Input validation, missing API key, success path, rate limiting, server cache, logging |
 | `__tests__/components/MethodTabs.test.tsx` | Tab rendering, aria-selected, click, keyboard navigation, panel ARIA linking |
 | `__tests__/components/InputForm.test.tsx` | Labels, disabled state, validation warnings, callbacks, submit guard |
 | `__tests__/components/StatusMessage.test.tsx` | Idle null render, loading spinner, error alert, error-over-loading priority |

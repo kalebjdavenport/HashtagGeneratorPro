@@ -24,7 +24,7 @@ function getRateLimiter(): Ratelimit | null {
   return ratelimit;
 }
 
-function getClientIp(request: NextRequest): string {
+export function getClientIp(request: NextRequest): string {
   return request.headers.get("x-forwarded-for")?.split(",")[0].trim() || "127.0.0.1";
 }
 

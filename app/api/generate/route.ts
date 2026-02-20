@@ -6,6 +6,7 @@ import type {
   GenerateErrorResponse,
 } from "@/lib/types";
 import { generateHashtags } from "@/lib/providers";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const VALID_METHODS: MethodId[] = ["claude", "gpt5", "gemini"];
 const MIN_TEXT_LENGTH = 20;
@@ -14,6 +15,14 @@ const MAX_TEXT_LENGTH = 50_000;
 export async function POST(
   request: NextRequest,
 ): Promise<NextResponse<GenerateResponse | GenerateErrorResponse>> {
+  // Rate limit check (fail-open)
+  try {
+    const rateLimitResponse = await checkRateLimit(request);
+    if (rateLimitResponse) return rateLimitResponse;
+  } catch (err) {
+    console.error("[API /generate] Rate limit check failed, allowing request:", err);
+  }
+
   try {
     const body = (await request.json()) as Partial<GenerateRequest>;
     const { method, title = "", text = "" } = body;

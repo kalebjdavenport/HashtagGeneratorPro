@@ -6,11 +6,18 @@ vi.mock("@/lib/providers", () => ({
   generateHashtags: vi.fn(),
 }));
 
+// Mock the rate-limit module
+vi.mock("@/lib/rate-limit", () => ({
+  checkRateLimit: vi.fn().mockResolvedValue(null),
+}));
+
 import { POST } from "@/app/api/generate/route";
 import { generateHashtags } from "@/lib/providers";
+import { checkRateLimit } from "@/lib/rate-limit";
 import type { GenerationResult } from "@/lib/types";
 
 const mockedGenerate = vi.mocked(generateHashtags);
+const mockedCheckRateLimit = vi.mocked(checkRateLimit);
 
 function makeRequest(body: Record<string, unknown>): NextRequest {
   return new NextRequest("http://localhost:3000/api/generate", {
@@ -105,5 +112,52 @@ describe("POST /api/generate", () => {
     const json = await res.json();
     expect(res.status).toBe(500);
     expect(json.code).toBe("PROVIDER_ERROR");
+  });
+
+  it("returns 429 when rate limit check blocks the request", async () => {
+    const { NextResponse } = await import("next/server");
+    mockedCheckRateLimit.mockResolvedValue(
+      NextResponse.json(
+        { success: false, error: "Too many requests.", code: "RATE_LIMITED" },
+        { status: 429 },
+      ),
+    );
+
+    const res = await POST(makeRequest({ method: "claude", text: VALID_TEXT }));
+    const json = await res.json();
+    expect(res.status).toBe(429);
+    expect(json.code).toBe("RATE_LIMITED");
+    expect(mockedGenerate).not.toHaveBeenCalled();
+  });
+
+  it("proceeds normally when rate limit check returns null", async () => {
+    mockedCheckRateLimit.mockResolvedValue(null);
+    const mockResult: GenerationResult = {
+      hashtags: ["#ok"],
+      durationMs: 50,
+      method: "claude",
+    };
+    mockedGenerate.mockResolvedValue(mockResult);
+
+    const res = await POST(makeRequest({ method: "claude", text: VALID_TEXT }));
+    const json = await res.json();
+    expect(res.status).toBe(200);
+    expect(json.success).toBe(true);
+  });
+
+  it("proceeds normally when rate limit check throws (fail-open)", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mockedCheckRateLimit.mockRejectedValue(new Error("Redis connection failed"));
+    const mockResult: GenerationResult = {
+      hashtags: ["#failopen"],
+      durationMs: 75,
+      method: "claude",
+    };
+    mockedGenerate.mockResolvedValue(mockResult);
+
+    const res = await POST(makeRequest({ method: "claude", text: VALID_TEXT }));
+    const json = await res.json();
+    expect(res.status).toBe(200);
+    expect(json.success).toBe(true);
   });
 });

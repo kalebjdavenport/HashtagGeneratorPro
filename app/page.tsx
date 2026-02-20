@@ -1,13 +1,8 @@
-import dynamic from "next/dynamic";
 import HashtagGenerator from "@/components/HashtagGenerator";
 import Footer from "@/components/Footer";
 import JsonLd from "@/components/JsonLd";
 import NavBar from "@/components/NavBar";
-
-const ArchitectureDiagram = dynamic(
-  () => import("@/components/ArchitectureDiagram"),
-  { ssr: false },
-);
+import ArchitectureDiagramClient from "@/components/ArchitectureDiagramClient";
 
 export default function Home() {
   return (
@@ -158,7 +153,7 @@ export default function Home() {
             React components hydrate client-side and call serverless API
             routes that dispatch to AI providers.
           </p>
-          <ArchitectureDiagram />
+          <ArchitectureDiagramClient />
         </section>
       </main>
 

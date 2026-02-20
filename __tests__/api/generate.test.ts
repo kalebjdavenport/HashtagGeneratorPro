@@ -86,6 +86,7 @@ describe("POST /api/generate", () => {
   });
 
   it("returns 429 RATE_LIMITED when provider throws with status 429", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
     const error = new Error("Rate limit exceeded");
     (error as unknown as { status: number }).status = 429;
     mockedGenerate.mockRejectedValue(error);
@@ -97,6 +98,7 @@ describe("POST /api/generate", () => {
   });
 
   it("returns 500 PROVIDER_ERROR on generic provider error", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
     mockedGenerate.mockRejectedValue(new Error("Something went wrong"));
 
     const res = await POST(makeRequest({ method: "claude", text: VALID_TEXT }));

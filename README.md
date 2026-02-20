@@ -63,38 +63,45 @@ The hashtag generator itself — the model selector tabs, the text input form, a
 
 When the user clicks "Generate Hashtags," the browser sends a request to the server in the background. The page doesn't freeze or navigate away — the user sees a loading spinner and can continue interacting with the page.
 
-On the server, the request goes through three steps:
+On the server, the request goes through these steps:
 
-1. **Check the input** — Is the selected model valid? Is the text long enough? Is it too long? If anything is wrong, the server sends back an error immediately, before contacting any AI provider. This keeps things fast and avoids wasting API calls on bad input.
+1. **Rate limit** — The server checks whether this IP address has exceeded 5 requests in the last 60 seconds (tracked in Redis). If so, it rejects the request immediately with a 429.
 
-2. **Call the AI provider** — The server looks up which AI model the user selected (Claude, GPT-5, or Gemini) and sends the text to that provider's API. Each provider is completely independent — it has its own API key, its own rate limits, and its own error handling. If Claude is overloaded, the user can switch to GPT-5 or Gemini and try again. The API keys are stored on the server and never sent to the browser.
+2. **Check the input** — Is the selected model valid? Is the text long enough? Is it too long? If anything is wrong, the server sends back an error immediately, before contacting any AI provider.
 
-3. **Return the result** — If the AI provider responds successfully, the server sends the hashtags back to the browser. If something goes wrong, the server figures out what kind of error it was (rate limiting, missing API key, or a provider failure) and sends back a clear error message so the UI can show the user what happened and what to do about it.
+3. **Check the server cache** — The server looks up a Redis cache shared across all users. If someone else already generated hashtags for the same text and model, the cached result is returned instantly without calling the AI provider.
+
+4. **Call the AI provider** — The server routes the text to the selected provider's API (Claude, GPT-5, or Gemini). Each provider is completely independent — it has its own API key, its own rate limits, and its own error handling. If Claude is overloaded, the user can switch to GPT-5 or Gemini.
+
+5. **Return the result** — The server sends the hashtags back to the browser and stores the result in the server cache for future requests. If something goes wrong, it sends back a clear error code so the UI can show the user what happened.
 
 ```mermaid
-flowchart TD
-    CDN["CDN Edge
-    Static HTML, JS, CSS, fonts"]
-    CDN --> Static
-    Static["Static Layer — no JavaScript
-    Header · Hero · Use Cases · Footer · FAQ"]
-    Static -. page loads, then React hydrates .-> Interactive
-    Interactive["Interactive Layer — runs in the browser
-    MethodTabs · InputForm · HashtagResults"]
-    Interactive --> Cache
-    Cache[("Browser Cache (L1)
-    Same input + model = instant result")]
-    Cache -- "already cached" --> Interactive
-    Cache -- "not cached" --> Route
-    Route["API Layer — runs on the server
-    Rate limit → Validate → Cache check → Call AI"]
-    Route --> ServerCache[("Server Cache (L2)
-    Redis — cross-user deduplication")]
-    ServerCache -- "hit" --> Route
-    ServerCache -- "miss" --> Providers
-    Providers --> Claude[Claude · Anthropic]
-    Providers --> GPT[GPT-5 · OpenAI]
-    Providers --> Gemini[Gemini · Google]
+flowchart LR
+    CDN["CDN Edge<br/>HTML, JS, CSS, fonts"] -- serves page --> React
+
+    subgraph Client ["Browser"]
+        React["React App<br/>hydrates on load"]
+        L1[("L1 Cache<br/>localStorage · 24h · per-user")]
+    end
+
+    React -- check --> L1
+    React -- "POST /api/generate" --> RL
+
+    subgraph Serverless ["Vercel Serverless"]
+        RL{"Rate Limiter<br/>5 req / 60s per IP"} -- allow --> Route["API Route<br/>validate · cache · dispatch"]
+    end
+
+    RL -- check count --> RLStore
+    Route -- check --> L2
+
+    subgraph Redis ["Upstash Redis"]
+        RLStore[("Sliding Window<br/>per-IP counters")]
+        L2[("L2 Cache<br/>24h · cross-user dedup")]
+    end
+
+    L2 -. miss .-> Claude["Anthropic Claude"]
+    L2 -. miss .-> GPT5["OpenAI GPT-5"]
+    L2 -. miss .-> Gemini["Google Gemini"]
 ```
 
 ## Tech Stack

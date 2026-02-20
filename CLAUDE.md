@@ -26,8 +26,8 @@ npm run test:watch    # Interactive dev — vitest
 Tests use Vitest + React Testing Library + jsdom. No API keys, running server, or browser required — all providers are mocked. The `vitest.setup.ts` file mocks `server-only` globally and handles RTL cleanup.
 
 Test files live in `__tests__/` mirroring the source structure:
-- `__tests__/lib/` — unit tests for parse-hashtags, prompts, cache
-- `__tests__/api/` — API route validation and error handling
+- `__tests__/lib/` — unit tests for parse-hashtags, prompts, cache, server-cache, logger, rate-limit
+- `__tests__/api/` — API route validation, error handling, server cache integration, structured logging
 - `__tests__/components/` — MethodTabs, InputForm, StatusMessage
 
 ## Production URL
@@ -42,17 +42,20 @@ The canonical production domain is `https://hashtag-generator-pro.vercel.app`. T
 - The hydration boundary starts at `HashtagGenerator.tsx`. Everything above it in the page is pure static HTML.
 
 ### API Route (`app/api/generate/route.ts`)
-The route runs entirely server-side (Vercel serverless function) and follows a three-stage pipeline:
+The route runs entirely server-side (Vercel serverless function) and follows this pipeline:
 
-1. **Validate** — Rejects bad input (missing/invalid method, text too short/long) with 400 before any API call is made. This is the cheapest check and fails fast.
-2. **Dispatch** — Checks the provider's API key exists in `process.env`, then routes to the correct provider module (`claude.ts`, `openai.ts`, or `gemini.ts`). Each provider is isolated with its own SDK and API key — if one is rate-limited, the others remain available.
-3. **Respond** — Returns the result on success, or catches errors and maps them to typed error codes (`RATE_LIMITED` for HTTP 429, `MISSING_KEY` for unconfigured providers, `PROVIDER_ERROR` for everything else).
+1. **Rate limit** — Per-IP sliding window (5 req/60s) via Upstash Redis. Fails open if Redis is unavailable.
+2. **Validate** — Rejects bad input (missing/invalid method, text too short/long) with 400 before any API call is made.
+3. **Server cache check** — Checks L2 Redis cache for a previous result with the same input. Fails open if Redis is unavailable.
+4. **Dispatch** — Routes to the correct provider module (`claude.ts`, `openai.ts`, or `gemini.ts`). Each provider is isolated with its own SDK and API key.
+5. **Cache & respond** — Stores the result in L2 cache (fire-and-forget), returns to client. On error, maps to typed error codes (`RATE_LIMITED`, `MISSING_KEY`, `PROVIDER_ERROR`).
 
-This never blocks the browser — the client calls the route via an async `fetch()` from the `useHashtagGenerator` hook, keeping the UI responsive while the server waits on the AI provider. Provider modules use `import "server-only"` to prevent accidental client bundling.
+Every request emits exactly one structured JSON log line in a `finally` block (`lib/logger.ts`). The client calls the route via an async `fetch()` from the `useHashtagGenerator` hook. Provider modules use `import "server-only"` to prevent accidental client bundling.
 
-### Caching (Two Tiers)
-1. **CDN Edge**: Static assets served with immutable cache headers. No origin hits for returning visitors.
-2. **Browser localStorage** (`lib/cache.ts`): AI responses cached with SHA-256 content-addressed keys. Key format: `htgp-cache-{SHA256(method:title:text)}`. TTL 24h, max 50 entries, LRU eviction.
+### Caching (Two Tiers + CDN)
+- **CDN Edge**: Static assets served with immutable cache headers. No origin hits for returning visitors.
+- **L1 — Browser localStorage** (`lib/cache.ts`): Per-user AI response cache with SHA-256 content-addressed keys. Key: `htgp-cache-{SHA256(method:title:text)}`. TTL 24h, max 50 entries, LRU eviction.
+- **L2 — Server Redis** (`lib/server-cache.ts`): Cross-user AI response cache. Key: `htgp-srv-{SHA256(method:title:text)}`. TTL 24h. Deduplicates identical requests across all users. Fails open if Redis is unavailable.
 
 ### Styling
 - Tailwind CSS v4 with `@tailwindcss/postcss` plugin and a custom `@theme` block in `globals.css`.

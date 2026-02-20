@@ -64,38 +64,40 @@ Two tiers of caching minimize load:
 
 ```mermaid
 flowchart TD
-    subgraph CDN["CDN Edge — Immutable Cache"]
-        HTML["Static HTML<br/><small>SSG at build · cached until redeploy</small>"]
-        JS["JS Chunks<br/><small>Content-hashed · forever</small>"]
-        CSS["CSS + Fonts<br/><small>Content-hashed · forever</small>"]
-        SEO["SEO Assets<br/><small>sitemap.xml · robots.txt · JSON-LD</small>"]
+    subgraph CDN["1 · CDN Edge"]
+        direction LR
+        HTML[Static HTML]
+        JS[JS Chunks]
+        CSS[CSS + Fonts]
+        SEO[sitemap · robots · JSON-LD]
     end
 
-    CDN -->|"Cache-Control: public, max-age=31536000, immutable"| Browser
+    CDN -- "immutable cache headers" --> Static
 
-    subgraph Browser["Browser (Client)"]
-        direction TB
-        Static["Static — No JS Required<br/><small>Header · Hero · Use Cases · Footer · FAQ · JSON-LD</small>"]
-        Boundary["— — — Hydration Boundary — — —"]
-        Interactive["Interactive — 'use client'<br/><small>MethodTabs · InputForm · StatusMessage · HashtagResults</small>"]
-        Cache["Response Cache (localStorage)<br/><small>Key: htgp-cache-{SHA-256(method:title:text)}<br/>TTL: 24h · Max: 50 entries · LRU eviction</small>"]
-        Interactive <-->|"HIT = instant"| Cache
+    subgraph Client["2 · Browser"]
+        Static[Server Components — no JS]
+        Static -. "hydration boundary" .-> Interactive
+        Interactive[Client Components — use client]
+        Interactive -- "cache HIT → instant" --> Cache
+        Cache -- "cache MISS" --> Interactive
     end
 
-    Interactive -->|"POST /api/generate<br/>(only on cache MISS)"| Server
+    Cache[("localStorage Cache
+    SHA-256 key · 24h TTL · 50 max")]
 
-    subgraph Server["Next.js Route Handler"]
-        Route["Validate → Check Key → Dispatch → parseHashtags() → Respond"]
-        Route --> Anthropic["Anthropic API<br/><small>claude-opus-4-6</small>"]
-        Route --> OpenAI["OpenAI API<br/><small>gpt-5</small>"]
-        Route --> Google["Google AI API<br/><small>gemini-2.5-flash</small>"]
+    Interactive -- "POST /api/generate" --> Route
+
+    subgraph Server["3 · Serverless Function"]
+        Route[Validate → Dispatch → Parse]
+        Route --> Claude["Anthropic — claude-opus-4-6"]
+        Route --> GPT["OpenAI — gpt-5"]
+        Route --> Gemini["Google — gemini-2.5-flash"]
     end
 
-    style CDN fill:#EEF2FF,stroke:#C7D2FE
-    style Browser fill:#F0FDF4,stroke:#A7F3D0
-    style Server fill:#FEF2F2,stroke:#FECACA
-    style Boundary fill:none,stroke:none,color:#B45309
-    style Cache fill:#FFF7ED,stroke:#FED7AA
+    style CDN fill:#eef2ff,stroke:#c7d2fe,color:#1e2330
+    style Client fill:#f0fdf4,stroke:#a7f3d0,color:#1e2330
+    style Server fill:#fef2f2,stroke:#fecaca,color:#1e2330
+    style Cache fill:#fff7ed,stroke:#fed7aa,color:#1e2330
 ```
 
 ### Rate Limiting

@@ -16,6 +16,24 @@ npm run dev             # http://localhost:3000
 
 If the dev server returns 500 errors, use `npm run dev:fresh` to kill stale processes on port 3000 and restart. Do NOT run `npm run build` while the dev server is running — it corrupts Turbopack's state.
 
+## Testing
+
+```bash
+npm test              # Single run (CI) — vitest run
+npm run test:watch    # Interactive dev — vitest
+```
+
+Tests use Vitest + React Testing Library + jsdom. No API keys, running server, or browser required — all providers are mocked. The `vitest.setup.ts` file mocks `server-only` globally and handles RTL cleanup.
+
+Test files live in `__tests__/` mirroring the source structure:
+- `__tests__/lib/` — unit tests for parse-hashtags, prompts, cache
+- `__tests__/api/` — API route validation and error handling
+- `__tests__/components/` — MethodTabs, InputForm, StatusMessage
+
+## Production URL
+
+The canonical production domain is `https://hashtag-generator-pro.vercel.app`. This is set in `app/layout.tsx` (metadataBase, canonical, OG URL), `app/sitemap.ts`, `app/robots.ts`, and `components/JsonLd.tsx`.
+
 ## Key Architecture Decisions
 
 ### Static/Dynamic Split
@@ -47,6 +65,7 @@ If the dev server returns 500 errors, use `npm run dev:fresh` to kill stale proc
 | Client hooks | `hooks/*.ts` |
 | Client components | `components/*.tsx` with `"use client"` directive |
 | Server components | `components/*.tsx` without the directive |
+| Tests | `__tests__/**/*.test.ts(x)` mirroring source structure |
 
 ## Common Tasks
 

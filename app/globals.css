@@ -1,0 +1,230 @@
+@import "tailwindcss";
+
+/* -- Buffer-inspired Theme -- */
+
+@theme {
+  --color-buffer-blue: #2C4BFF;
+  --color-buffer-blue-hover: #1E3AE6;
+  --color-buffer-blue-active: #1830CC;
+  --color-buffer-dark: #1E2330;
+  --color-buffer-muted: #636E7F;
+  --color-buffer-border: #E0E4EA;
+  --color-buffer-light: #F7F8FA;
+  --color-buffer-green: #2BD67B;
+  --color-buffer-coral: #F26D5B;
+  --color-buffer-purple: #8B5CF6;
+  --color-buffer-amber: #F59E0B;
+  --font-family-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* -- Skip Link -- */
+
+.skip-link:focus {
+  clip: auto;
+  clip-path: none;
+  width: auto;
+  height: auto;
+  overflow: visible;
+}
+
+/* -- Hero Gradient -- */
+
+.hero-gradient {
+  background: linear-gradient(135deg, #EEF2FF 0%, #F0F7FF 40%, #FFF7ED 100%);
+}
+
+.hero-gradient-border {
+  border-image: linear-gradient(135deg, #2C4BFF, #8B5CF6, #F26D5B) 1;
+}
+
+/* -- Animations -- */
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s ease both;
+}
+
+.progress-fill {
+  transition: width 0.3s ease;
+}
+
+/* -- Hashtag Chips -- */
+
+.hashtag-chip {
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+.hashtag-chip:hover {
+  background-color: #EEF2FF;
+  border-color: #2C4BFF;
+  box-shadow: 0 2px 8px rgba(44, 75, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.hashtag-chip:active {
+  transform: translateY(0);
+}
+
+.hashtag-chip.copied {
+  background-color: #ECFDF5;
+  border-color: #2BD67B;
+}
+
+/* -- Tabs -- */
+
+.tab-button {
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.tab-button.tab-active {
+  color: #2C4BFF;
+  border-bottom-color: #2C4BFF;
+  background-color: #EEF2FF;
+}
+
+.tab-button:hover:not(.tab-active) {
+  color: #1E2330;
+  background-color: #F7F8FA;
+}
+
+.tab-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(44, 75, 255, 0.25);
+  border-radius: 4px 4px 0 0;
+}
+
+.tab-panel:focus {
+  outline: none;
+}
+
+/* -- Provider Colors -- */
+
+.provider-claude { --provider-color: #D97706; --provider-bg: #FFFBEB; --provider-border: #FDE68A; }
+.provider-gpt5 { --provider-color: #059669; --provider-bg: #ECFDF5; --provider-border: #A7F3D0; }
+.provider-gemini { --provider-color: #2563EB; --provider-bg: #EFF6FF; --provider-border: #BFDBFE; }
+
+/* -- Global Focus -- */
+
+::selection {
+  background-color: #2C4BFF;
+  color: #fff;
+}
+
+textarea:focus,
+input[type="text"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(44, 75, 255, 0.2);
+  border-color: #2C4BFF;
+}
+
+button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(44, 75, 255, 0.25);
+}
+
+/* -- Cards -- */
+
+.feature-card {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.feature-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+}
+
+/* -- FAQ Accordion -- */
+
+.faq-chevron {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid #636E7F;
+  border-bottom: 2px solid #636E7F;
+  transform: rotate(45deg);
+  transition: transform 0.25s ease;
+}
+
+.faq-chevron-open {
+  transform: rotate(-135deg);
+}
+
+.faq-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+}
+
+.faq-content[aria-hidden="false"] {
+  grid-template-rows: 1fr;
+}
+
+.faq-content > div {
+  overflow: hidden;
+}
+
+/* -- Smooth scroll -- */
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .spinner {
+    animation: none;
+  }
+
+  .hashtag-chip,
+  .feature-card {
+    transition: none;
+  }
+
+  .animate-fade-in-up {
+    animation: none;
+  }
+
+  .faq-content {
+    transition: none;
+  }
+
+  .faq-chevron {
+    transition: none;
+  }
+}

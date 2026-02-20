@@ -77,16 +77,20 @@ flowchart TD
     SHA-256 key · 24h TTL · LRU")]
     Cache -- HIT → instant --> Interactive
     Cache -- MISS --> Route
-    Route["POST /api/generate
-    Validate → Dispatch → Parse"]
+    Route["POST /api/generate (server-side)
+    Validate → Dispatch → Respond"]
     Route --> Claude[Anthropic · claude-opus-4-6]
     Route --> GPT[OpenAI · gpt-5]
     Route --> Gemini[Google · gemini-2.5-flash]
 ```
 
-### Rate Limiting
+### API Route Pipeline
 
-Each AI provider is isolated with its own API key and independent rate limits. If Anthropic is rate-limited, OpenAI and Google remain available. HTTP 429 responses from any provider are caught and returned to the client as a `RATE_LIMITED` error with the provider's message.
+The `POST /api/generate` route runs as a Vercel serverless function — never in the browser. The client calls it via an async `fetch()`, so the UI stays responsive while the server waits on the AI provider.
+
+1. **Validate** — Rejects bad input (missing method, text too short/long) with a `400` before any API call is made. Cheapest check, fails fast.
+2. **Dispatch** — Checks the provider's API key in `process.env`, then routes to the selected provider module (`claude.ts`, `openai.ts`, or `gemini.ts`). Each provider is isolated with its own SDK and API key — if one is rate-limited, the others remain available.
+3. **Respond** — Returns the result on success, or catches errors and maps them to typed error codes: `RATE_LIMITED` (HTTP 429), `MISSING_KEY` (unconfigured provider), `PROVIDER_ERROR` (everything else).
 
 ## Tech Stack
 

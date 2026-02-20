@@ -122,8 +122,8 @@ export default function InputForm({
           </p>
         )}
         <p id="text-input-help" className="text-xs text-buffer-muted mt-1.5">
-          Minimum {MIN_CHARS} characters. The more text you provide, the better
-          the hashtag results.
+          Paste your text or upload a .txt file below. Minimum {MIN_CHARS}{" "}
+          characters — the more text you provide, the better the results.
         </p>
       </div>
 

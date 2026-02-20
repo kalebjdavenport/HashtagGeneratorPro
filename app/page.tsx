@@ -1,8 +1,13 @@
+import dynamic from "next/dynamic";
 import HashtagGenerator from "@/components/HashtagGenerator";
 import Footer from "@/components/Footer";
 import JsonLd from "@/components/JsonLd";
-import ArchitectureDiagram from "@/components/ArchitectureDiagram";
 import NavBar from "@/components/NavBar";
+
+const ArchitectureDiagram = dynamic(
+  () => import("@/components/ArchitectureDiagram"),
+  { ssr: false },
+);
 
 export default function Home() {
   return (
@@ -33,12 +38,12 @@ export default function Home() {
                 </span>
               </h1>
               <p className="text-buffer-muted text-lg leading-relaxed max-w-xl">
-                Paste any text and get relevant, high-performing hashtags in
-                seconds. Compare results from{" "}
+                Paste any text or upload a .txt file and get relevant,
+                high-performing hashtags in seconds. Compare results from{" "}
                 <strong className="text-buffer-dark">Claude Opus</strong>,{" "}
                 <strong className="text-buffer-dark">GPT-5</strong>, and{" "}
-                <strong className="text-buffer-dark">Gemini</strong>. Free, no
-                signup.
+                <strong className="text-buffer-dark">Gemini Flash</strong>. Free,
+                no signup.
               </p>
             </div>
             <HashtagGenerator />

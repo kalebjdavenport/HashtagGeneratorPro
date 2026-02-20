@@ -56,7 +56,7 @@ export const metadata: Metadata = {
       "Paste any text and get relevant hashtags in seconds. Compare Claude, GPT-5, and Gemini side by side.",
     images: ["/og-image.png"],
   },
-  icons: { icon: "/favicon.jpg" },
+  icons: { icon: "/favicon.png", apple: "/icon-192.png" },
   other: { "theme-color": "#168eea" },
   alternates: {
     canonical: "https://hashtag-generator-pro.vercel.app",

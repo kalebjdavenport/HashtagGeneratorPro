@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 
 const NAV_LINKS = [
   { href: "#hashtag-generator", label: "Generator" },
@@ -59,12 +60,12 @@ export default function NavBar() {
           href="/"
           className="text-buffer-dark font-bold text-base tracking-tight flex items-center gap-1.5"
         >
-          <img
-            src="/favicon.jpg"
+          <Image
+            src="/icon-192.png"
             alt=""
             width={24}
             height={24}
-            className="w-6 h-6 rounded-md"
+            className="rounded-md"
           />
           HashtagGeneratorPro
         </a>

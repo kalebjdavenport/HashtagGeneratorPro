@@ -20,7 +20,7 @@ export async function generateWithGPT5(
       { role: "user", content: buildUserPrompt(title, text) },
     ],
     temperature: 0.3,
-    max_tokens: 200,
+    max_completion_tokens: 200,
   });
 
   const raw = completion.choices[0]?.message?.content ?? "";

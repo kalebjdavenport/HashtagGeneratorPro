@@ -5,7 +5,7 @@ export default function JsonLd() {
     name: "AI Hashtag Generator Pro",
     description:
       "Generate relevant hashtags from any text using three cutting-edge AI models: Claude Opus, GPT-5, and Gemini. Free, fast, no signup required.",
-    url: "https://hashtaggeneratorpro.com/",
+    url: "https://hashtag-generator-pro.vercel.app/",
     applicationCategory: "UtilityApplication",
     operatingSystem: "Any",
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
@@ -107,7 +107,7 @@ export default function JsonLd() {
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://hashtaggeneratorpro.com/",
+        item: "https://hashtag-generator-pro.vercel.app/",
       },
     ],
   };

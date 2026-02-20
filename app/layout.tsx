@@ -9,7 +9,7 @@ const figtree = Figtree({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://hashtaggeneratorpro.com"),
+  metadataBase: new URL("https://hashtag-generator-pro.vercel.app"),
   title: {
     default:
       "AI Hashtag Generator \u2014 Free Tool Powered by Claude, GPT-5 & Gemini",
@@ -35,10 +35,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://hashtaggeneratorpro.com",
+    url: "https://hashtag-generator-pro.vercel.app",
     siteName: "AI Hashtag Generator Pro",
-    title:
-      "AI Hashtag Generator \u2014 Free Tool Powered by Claude, GPT-5 & Gemini",
+    title: "AI Hashtag Generator Pro | Claude, GPT-5 & Gemini",
     description:
       "Paste any text and get perfectly relevant hashtags in seconds. Compare results from three top AI models. Free, no signup.",
     images: [
@@ -52,8 +51,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title:
-      "AI Hashtag Generator \u2014 Free Tool Powered by Claude, GPT-5 & Gemini",
+    title: "AI Hashtag Generator Pro | Claude, GPT-5 & Gemini",
     description:
       "Paste any text and get relevant hashtags in seconds. Compare Claude, GPT-5, and Gemini side by side.",
     images: ["/og-image.png"],
@@ -61,7 +59,7 @@ export const metadata: Metadata = {
   icons: { icon: "/favicon.jpg" },
   other: { "theme-color": "#168eea" },
   alternates: {
-    canonical: "https://hashtaggeneratorpro.com",
+    canonical: "https://hashtag-generator-pro.vercel.app",
   },
 };
 

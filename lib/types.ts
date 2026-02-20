@@ -34,6 +34,12 @@ export interface MethodInfo {
   description: string;
 }
 
+export const METHOD_LABELS: Record<MethodId, string> = {
+  claude: "Claude Opus",
+  gpt5: "GPT-5",
+  gemini: "Gemini Flash",
+};
+
 export const METHODS: MethodInfo[] = [
   {
     id: "claude",

@@ -59,9 +59,13 @@ export default function NavBar() {
           href="/"
           className="text-buffer-dark font-bold text-base tracking-tight flex items-center gap-1.5"
         >
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-buffer-blue text-white text-xs font-bold">
-            #
-          </span>
+          <img
+            src="/favicon.jpg"
+            alt=""
+            width={24}
+            height={24}
+            className="w-6 h-6 rounded-md"
+          />
           HashtagGeneratorPro
         </a>
 
@@ -90,11 +94,11 @@ export default function NavBar() {
           onClick={() => setIsOpen(!isOpen)}
         >
           {isOpen ? (
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           ) : (
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           )}
@@ -110,6 +114,7 @@ export default function NavBar() {
         }`}
         role="region"
         aria-label="Mobile navigation"
+        inert={!isOpen || undefined}
       >
         <div className="overflow-hidden">
           <ul className="px-5 pb-4 pt-1 space-y-1" role="list">

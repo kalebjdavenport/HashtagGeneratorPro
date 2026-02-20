@@ -86,7 +86,7 @@ export default function InputForm({
           <span
             className={`text-xs tabular-nums ${
               trimmedLen > 0 && !textOk
-                ? "text-amber-600"
+                ? "text-amber-700"
                 : "text-buffer-muted"
             }`}
             aria-live="off"
@@ -111,11 +111,16 @@ export default function InputForm({
               : "border-buffer-border"
           }`}
           placeholder="Paste an article, blog post, or any text here..."
-          aria-describedby="text-input-help"
+          aria-describedby={trimmedLen > 0 && !textOk ? "text-input-error text-input-help" : "text-input-help"}
           aria-invalid={trimmedLen > 0 && !textOk}
           required
           minLength={MIN_CHARS}
         />
+        {trimmedLen > 0 && !textOk && (
+          <p id="text-input-error" className="text-xs text-amber-700 mt-1.5" role="alert">
+            Text must be at least {MIN_CHARS} characters ({MIN_CHARS - trimmedLen} more needed).
+          </p>
+        )}
         <p id="text-input-help" className="text-xs text-buffer-muted mt-1.5">
           Minimum {MIN_CHARS} characters. The more text you provide, the better
           the hashtag results.

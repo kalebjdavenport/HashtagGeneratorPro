@@ -2,10 +2,10 @@ import FaqAccordion from "./FaqAccordion";
 
 export default function Footer() {
   return (
-    <footer className="bg-buffer-light border-t border-buffer-border" role="contentinfo">
-      <div className="max-w-5xl mx-auto px-5 py-14">
+    <footer className="bg-buffer-light border-t border-buffer-border">
+      <div className="max-w-5xl mx-auto px-5 py-14 space-y-14">
         {/* How It Works */}
-        <section aria-labelledby="how-it-works" className="mb-14">
+        <section aria-labelledby="how-it-works">
           <h2
             id="how-it-works"
             className="text-2xl font-bold tracking-tight text-buffer-dark mb-6 text-center"
@@ -56,7 +56,7 @@ export default function Footer() {
         </section>
 
         {/* FAQ */}
-        <section aria-labelledby="faq-heading" className="max-w-2xl mx-auto min-h-[28rem]">
+        <section aria-labelledby="faq-heading" className="max-w-2xl mx-auto min-h-[24rem]">
           <h2
             id="faq-heading"
             className="text-2xl font-bold tracking-tight text-buffer-dark mb-6 text-center"
@@ -66,7 +66,46 @@ export default function Footer() {
           <FaqAccordion />
         </section>
 
-        <div className="mt-12 pt-6 border-t border-buffer-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-buffer-muted">
+        {/* Accessibility & SEO */}
+        <section aria-labelledby="accessibility-heading" className="max-w-2xl mx-auto">
+          <h2
+            id="accessibility-heading"
+            className="text-xl font-bold tracking-tight text-buffer-dark mb-4 text-center"
+          >
+            Built for Everyone
+          </h2>
+          <p className="text-sm text-buffer-muted text-center mb-5">
+            This page is designed to be fast, accessible, and easy to navigate for all users.
+          </p>
+          <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-2.5 text-sm text-buffer-muted" aria-label="Accessibility features">
+            <li className="flex items-start gap-2">
+              <span className="text-buffer-blue mt-0.5" aria-hidden="true">&#10003;</span>
+              <span><strong className="text-buffer-dark">Keyboard navigable</strong> &mdash; every control reachable via Tab, arrows, and Escape</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-buffer-blue mt-0.5" aria-hidden="true">&#10003;</span>
+              <span><strong className="text-buffer-dark">Screen reader friendly</strong> &mdash; ARIA roles, labels, and live regions throughout</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-buffer-blue mt-0.5" aria-hidden="true">&#10003;</span>
+              <span><strong className="text-buffer-dark">Skip-to-content link</strong> &mdash; jump straight to the generator with one keystroke</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-buffer-blue mt-0.5" aria-hidden="true">&#10003;</span>
+              <span><strong className="text-buffer-dark">Reduced motion support</strong> &mdash; animations disabled when preferred</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-buffer-blue mt-0.5" aria-hidden="true">&#10003;</span>
+              <span><strong className="text-buffer-dark">AA contrast ratios</strong> &mdash; all text meets WCAG 2.1 minimum contrast</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-buffer-blue mt-0.5" aria-hidden="true">&#10003;</span>
+              <span><strong className="text-buffer-dark">Semantic HTML</strong> &mdash; proper headings, landmarks, and structured data for crawlers</span>
+            </li>
+          </ul>
+        </section>
+
+        <div className="pt-6 border-t border-buffer-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-buffer-muted">
           <p>
             AI Hashtag Generator Pro &mdash; Free AI-powered hashtag tool.
           </p>

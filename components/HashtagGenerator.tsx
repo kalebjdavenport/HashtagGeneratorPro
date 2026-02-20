@@ -38,7 +38,7 @@ export default function HashtagGenerator() {
   const currentResult = results[selectedMethod];
 
   return (
-    <div id="hashtag-generator">
+    <div id="hashtag-generator" tabIndex={-1} className="focus:outline-none">
       <MethodTabs
         methods={METHODS}
         activeMethod={selectedMethod}

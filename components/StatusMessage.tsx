@@ -1,12 +1,6 @@
 "use client";
 
-import type { MethodId } from "@/lib/types";
-
-const METHOD_LABELS: Record<MethodId, string> = {
-  claude: "Claude Opus",
-  gpt5: "GPT-5",
-  gemini: "Gemini Flash",
-};
+import { METHOD_LABELS, type MethodId } from "@/lib/types";
 
 interface StatusMessageProps {
   isGenerating: boolean;

@@ -39,8 +39,10 @@ export default function FaqAccordion() {
           >
             <button
               type="button"
+              id={`faq-btn-${i}`}
               onClick={() => setOpenIndex(isOpen ? null : i)}
               aria-expanded={isOpen}
+              aria-controls={`faq-panel-${i}`}
               className="w-full font-semibold text-buffer-dark cursor-pointer py-3 px-4 select-none text-sm flex items-center text-left"
             >
               <span className="flex-1">{item.q}</span>
@@ -50,8 +52,10 @@ export default function FaqAccordion() {
               />
             </button>
             <div
+              id={`faq-panel-${i}`}
               className="faq-content"
               role="region"
+              aria-labelledby={`faq-btn-${i}`}
               aria-hidden={!isOpen}
             >
               <div>

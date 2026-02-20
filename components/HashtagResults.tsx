@@ -1,14 +1,8 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import type { MethodId, GenerationResult } from "@/lib/types";
+import { METHOD_LABELS, type GenerationResult } from "@/lib/types";
 import { copyToClipboard } from "@/lib/clipboard";
-
-const METHOD_LABELS: Record<MethodId, string> = {
-  claude: "Claude Opus",
-  gpt5: "GPT-5",
-  gemini: "Gemini Flash",
-};
 
 interface HashtagResultsProps {
   result: GenerationResult | undefined;
@@ -99,9 +93,18 @@ export default function HashtagResults({
               }`}
               aria-label={`Copy hashtag ${tag}`}
             >
-              {tag}{" "}
-              <span className="text-xs opacity-60" aria-hidden="true">
-                {copiedTag === tag ? "\u2713" : "\uD83D\uDCCB"}
+              {tag}
+              <span className="w-3.5 h-3.5 opacity-50" aria-hidden="true">
+                {copiedTag === tag ? (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-emerald-600">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                  </svg>
+                )}
               </span>
             </button>
           </li>
@@ -126,7 +129,7 @@ export default function HashtagResults({
         <button
           type="button"
           onClick={onReset}
-          className="px-5 py-2.5 text-red-500 font-semibold border border-red-200 rounded-xl hover:bg-red-50 transition-colors"
+          className="px-5 py-2.5 text-red-700 font-semibold border border-red-200 rounded-xl hover:bg-red-50 transition-colors"
         >
           Reset
         </button>
@@ -134,9 +137,8 @@ export default function HashtagResults({
 
       {feedback && (
         <p
-          className="text-sm text-buffer-green mt-3 font-medium"
+          className="text-sm text-emerald-700 mt-3 font-medium"
           role="status"
-          aria-live="assertive"
         >
           {feedback}
         </p>

@@ -19,7 +19,6 @@ export async function generateWithGPT5(
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: buildUserPrompt(title, text) },
     ],
-    temperature: 0.3,
     max_completion_tokens: 200,
   });
 

@@ -9,6 +9,8 @@ interface InputFormProps {
   onTextChange: (value: string) => void;
   isGenerating: boolean;
   onSubmit: () => void;
+  onClearCache: () => void;
+  hasCachedResults: boolean;
 }
 
 const MIN_CHARS = 20;
@@ -20,6 +22,8 @@ export default function InputForm({
   onTextChange,
   isGenerating,
   onSubmit,
+  onClearCache,
+  hasCachedResults,
 }: InputFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const trimmedLen = text.trim().length;
@@ -152,9 +156,22 @@ export default function InputForm({
         type="submit"
         disabled={!textOk || isGenerating}
         aria-disabled={!textOk || isGenerating}
-        className="w-full bg-buffer-blue text-white font-semibold py-3.5 px-6 rounded-xl hover:bg-buffer-blue-hover active:bg-buffer-blue-active disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="w-full bg-buffer-blue text-white font-semibold py-3.5 px-6 rounded-xl cursor-pointer hover:bg-buffer-blue-hover active:bg-buffer-blue-active disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {isGenerating ? "Analyzing..." : "Generate Hashtags"}
+      </button>
+
+      <button
+        type="button"
+        onClick={onClearCache}
+        disabled={!hasCachedResults}
+        className={`w-full text-sm font-medium py-2 transition-colors ${
+          hasCachedResults
+            ? "text-buffer-blue underline cursor-pointer hover:text-buffer-blue-hover"
+            : "text-buffer-muted/40 cursor-default"
+        }`}
+      >
+        Clear cached results
       </button>
     </form>
   );

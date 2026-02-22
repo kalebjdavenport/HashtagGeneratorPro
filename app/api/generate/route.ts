@@ -110,7 +110,7 @@ export async function POST(
         trimmedTitle,
         trimmedText,
       );
-      if (cached) {
+      if (cached && cached.hashtags.length > 0) {
         log.cacheHit = true;
         return NextResponse.json({ success: true as const, result: cached });
       }
@@ -124,10 +124,12 @@ export async function POST(
       trimmedText,
     );
 
-    // Fire-and-forget cache write
-    setServerCachedResult(method as string, trimmedTitle, trimmedText, result).catch(
-      () => {},
-    );
+    // Fire-and-forget cache write (skip empty results)
+    if (result.hashtags.length > 0) {
+      setServerCachedResult(method as string, trimmedTitle, trimmedText, result).catch(
+        () => {},
+      );
+    }
 
     return NextResponse.json({ success: true as const, result });
   } catch (err: unknown) {

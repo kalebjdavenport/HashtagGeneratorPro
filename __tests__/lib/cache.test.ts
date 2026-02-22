@@ -4,6 +4,7 @@ import {
   getCachedResult,
   setCachedResult,
   clearCache,
+  hasCacheEntries,
 } from "@/lib/cache";
 import type { GenerationResult } from "@/lib/types";
 
@@ -84,6 +85,25 @@ describe("setCachedResult / getCachedResult roundtrip", () => {
     setCachedResult(key, MOCK_RESULT);
     const cached = getCachedResult(key);
     expect(cached).toEqual(MOCK_RESULT);
+  });
+});
+
+describe("hasCacheEntries", () => {
+  it("returns false when cache is empty", () => {
+    expect(hasCacheEntries()).toBe(false);
+  });
+
+  it("returns true when cache has entries", async () => {
+    const key = await getCacheKey("claude", "t", "x");
+    setCachedResult(key, MOCK_RESULT);
+    expect(hasCacheEntries()).toBe(true);
+  });
+
+  it("returns false after clearCache", async () => {
+    const key = await getCacheKey("claude", "t", "x");
+    setCachedResult(key, MOCK_RESULT);
+    clearCache();
+    expect(hasCacheEntries()).toBe(false);
   });
 });
 

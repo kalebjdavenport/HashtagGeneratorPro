@@ -13,6 +13,8 @@ function renderForm(overrides: Partial<Parameters<typeof InputForm>[0]> = {}) {
     onTextChange: vi.fn(),
     isGenerating: false,
     onSubmit: vi.fn(),
+    onClearCache: vi.fn(),
+    hasCachedResults: false,
     ...overrides,
   };
   return { props, ...render(<InputForm {...props} />) };
@@ -78,5 +80,20 @@ describe("InputForm", () => {
 
     await user.click(screen.getByRole("button", { name: /generate hashtags/i }));
     expect(props.onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("clear cache button is disabled when no cached results", () => {
+    renderForm({ hasCachedResults: false });
+    expect(screen.getByRole("button", { name: /clear cached results/i })).toBeDisabled();
+  });
+
+  it("clear cache button is enabled and calls onClearCache when cache exists", async () => {
+    const user = userEvent.setup();
+    const { props } = renderForm({ hasCachedResults: true });
+
+    const btn = screen.getByRole("button", { name: /clear cached results/i });
+    expect(btn).toBeEnabled();
+    await user.click(btn);
+    expect(props.onClearCache).toHaveBeenCalledOnce();
   });
 });

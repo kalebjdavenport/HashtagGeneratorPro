@@ -77,6 +77,13 @@ function evictOldEntries(): void {
   }
 }
 
+export function hasCacheEntries(): boolean {
+  for (let i = 0; i < localStorage.length; i++) {
+    if (localStorage.key(i)?.startsWith(CACHE_PREFIX)) return true;
+  }
+  return false;
+}
+
 export function clearCache(): void {
   const keys: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {

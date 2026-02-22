@@ -19,7 +19,8 @@ export async function generateWithGPT5(
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: buildUserPrompt(title, text) },
     ],
-    max_completion_tokens: 200,
+    max_completion_tokens: 1024,
+    reasoning: { effort: "low" },
   });
 
   const raw = completion.choices[0]?.message?.content ?? "";

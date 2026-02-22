@@ -17,7 +17,7 @@ flowchart LR
     React -- generateHashtags: ARTICLE --> RL
 
     subgraph Serverless ["Vercel Serverless"]
-        RL{Rate Limitter} -- allow --> Route[API Route]
+        RL{Rate Limitter Redis} -- allow --> Route[API Route]
     end
 
     RL -- check count --> RLStore
@@ -248,17 +248,17 @@ Each AI provider also enforces its own per-API-key rate limits independently. Wh
 Every API request emits exactly one structured JSON log line via `console.log(JSON.stringify(...))`. The log object is created at the top of the handler, populated as the request progresses, and emitted in a `finally` block so it is written regardless of outcome.
 
 
-| Field        | Type      | Description                                      |
-| -------------- | ----------- | -------------------------------------------------- |
-| `requestId`  | `string`  | UUID v4, unique per request                      |
-| `timestamp`  | `string`  | ISO 8601 when the request started                |
-| `method`     | `string \| null` | AI provider, null if request failed before parsing |
-| `ip`         | `string`  | Client IP from`x-forwarded-for`                  |
-| `latencyMs`  | `number`  | Total request duration in milliseconds           |
-| `statusCode` | `number`  | HTTP response status code                        |
-| `cacheHit`   | `boolean` | Whether the server Redis cache returned a result |
-| `error`      | `string \| null` | Error message, null on success                     |
-| `code`       | `string \| null` | Error code (RATE_LIMITED, PROVIDER_ERROR, etc.)    |
+| Field        | Type            | Description                                        |
+| -------------- | ----------------- | ---------------------------------------------------- |
+| `requestId`  | `string`        | UUID v4, unique per request                        |
+| `timestamp`  | `string`        | ISO 8601 when the request started                  |
+| `method`     | `string | null` | AI provider, null if request failed before parsing |
+| `ip`         | `string`        | Client IP from`x-forwarded-for`                    |
+| `latencyMs`  | `number`        | Total request duration in milliseconds             |
+| `statusCode` | `number`        | HTTP response status code                          |
+| `cacheHit`   | `boolean`       | Whether the server Redis cache returned a result   |
+| `error`      | `string | null` | Error message, null on success                     |
+| `code`       | `string | null` | Error code (RATE_LIMITED, PROVIDER_ERROR, etc.)    |
 
 Vercel parses structured JSON logs automatically. Logs can be forwarded to Datadog, Axiom, or other aggregators via Vercel Log Drains.
 

@@ -48,9 +48,9 @@ describe("generateWithGPT5", () => {
     expect(params.model).toBe("gpt-5");
     expect(params).not.toHaveProperty("temperature");
     expect(params.max_completion_tokens).toBe(1024);
-    expect(params.reasoning).toEqual({ effort: "low" });
+    expect(params.reasoning_effort).toBe("low");
     expect(params.messages).toHaveLength(2);
-    expect(params.messages[0].role).toBe("system");
+    expect(params.messages[0].role).toBe("developer");
     expect(params.messages[1].role).toBe("user");
   });
 

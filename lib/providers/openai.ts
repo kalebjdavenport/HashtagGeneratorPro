@@ -16,11 +16,11 @@ export async function generateWithGPT5(
   const completion = await client.chat.completions.create({
     model: "gpt-5",
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "developer", content: SYSTEM_PROMPT },
       { role: "user", content: buildUserPrompt(title, text) },
     ],
     max_completion_tokens: 1024,
-    reasoning: { effort: "low" },
+    reasoning_effort: "low",
   } as OpenAI.ChatCompletionCreateParamsNonStreaming);
 
   const raw = completion.choices[0]?.message?.content ?? "";

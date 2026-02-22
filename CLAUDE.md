@@ -19,14 +19,17 @@ If the dev server returns 500 errors, use `npm run dev:fresh` to kill stale proc
 ## Testing
 
 ```bash
-npm test              # Single run (CI) — vitest run
+npm test              # Single run — vitest run
 npm run test:watch    # Interactive dev — vitest
+npm run ci            # Tests + type checking (run before pushing)
 ```
+
+**Always run `npm run ci` before pushing.** `npm test` alone won't catch TypeScript errors because provider SDKs are mocked — the `ci` script adds `tsc --noEmit` to catch type mismatches against real SDK types.
 
 Tests use Vitest + React Testing Library + jsdom. No API keys, running server, or browser required — all providers are mocked. The `vitest.setup.ts` file mocks `server-only` globally and handles RTL cleanup.
 
 Test files live in `__tests__/` mirroring the source structure:
-- `__tests__/lib/` — unit tests for parse-hashtags, prompts, cache, server-cache, logger, rate-limit
+- `__tests__/lib/` — unit tests for parse-hashtags, prompts, cache, server-cache, logger, rate-limit, providers
 - `__tests__/api/` — API route validation, error handling, server cache integration, structured logging
 - `__tests__/components/` — MethodTabs, InputForm, StatusMessage
 

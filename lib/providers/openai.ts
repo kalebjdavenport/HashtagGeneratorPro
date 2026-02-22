@@ -21,7 +21,7 @@ export async function generateWithGPT5(
     ],
     max_completion_tokens: 1024,
     reasoning: { effort: "low" },
-  });
+  } as OpenAI.ChatCompletionCreateParamsNonStreaming);
 
   const raw = completion.choices[0]?.message?.content ?? "";
   const hashtags = parseHashtags(raw, MAX_HASHTAGS);
